@@ -37,7 +37,13 @@ const cocktails = [
 
 const allIngredients = [...new Set(cocktails.flatMap(cocktail => cocktail.ingredients))];
 
-function Modal({ isOpen, onClose, children }) {
+type ModalProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  children: React.ReactNode;
+};
+
+function Modal({ isOpen, onClose, children }: ModalProps) {
   if (!isOpen) return null;
 
   return (
@@ -53,10 +59,24 @@ function Modal({ isOpen, onClose, children }) {
 }
 
 export default function CocktailSuggestionApp() {
-  const [userIngredients, setUserIngredients] = useState([]);
-  const [suggestions, setSuggestions] = useState([]);
+  const [userIngredients, setUserIngredients] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<{
+    matchedIngredients: string[];
+    missingIngredients: string[];
+    id: number;
+    name: string;
+    ingredients: string[];
+    recipe: string;
+  }[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCocktail, setSelectedCocktail] = useState(null);
+  const [selectedCocktail, setSelectedCocktail] = useState<{
+    matchedIngredients: string[];
+    missingIngredients: string[];
+    id: number;
+    name: string;
+    ingredients: string[];
+    recipe: string;
+  } | null>(null);
 
   useEffect(() => {
     const filteredCocktails = cocktails.filter(cocktail =>
@@ -72,14 +92,14 @@ export default function CocktailSuggestionApp() {
     setSuggestions(filteredCocktails);
   }, [userIngredients]);
 
-  const addIngredient = (ingredient) => {
+  const addIngredient = (ingredient: string) => {
     if (!userIngredients.includes(ingredient)) {
       setUserIngredients([...userIngredients, ingredient]);
     }
     setSearchTerm('');
   };
 
-  const removeIngredient = (ingredient) => {
+  const removeIngredient = (ingredient: string) => {
     setUserIngredients(userIngredients.filter(i => i !== ingredient));
   };
 
