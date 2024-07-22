@@ -1,113 +1,202 @@
-import Image from "next/image";
+'use client';
+import React, { useState, useEffect } from 'react';
+import debounce from 'lodash.debounce';
 
-export default function Home() {
+const cocktails = [
+  {
+    id: 1,
+    name: 'Mojito',
+    ingredients: ['rum', 'mint', 'lime', 'sugar', 'soda water'],
+    recipe: "1. Muddle mint leaves with sugar and lime juice.\n2. Add rum and fill glass with ice.\n3. Top with soda water and stir.\n4. Garnish with mint sprig and lime wedge."
+  },
+  {
+    id: 2,
+    name: 'Margarita',
+    ingredients: ['tequila', 'lime juice', 'triple sec', 'salt'],
+    recipe: "1. Rub rim of glass with lime and dip in salt.\n2. Shake tequila, lime juice, and triple sec with ice.\n3. Strain into glass over ice.\n4. Garnish with lime wheel."
+  },
+  {
+    id: 3,
+    name: 'Old Fashioned',
+    ingredients: ['whiskey', 'bitters', 'sugar', 'orange peel'],
+    recipe: "1. Muddle sugar with bitters and a splash of water.\n2. Add whiskey and ice, stir until chilled.\n3. Express orange peel over glass and drop in."
+  },
+  {
+    id: 4,
+    name: 'Martini',
+    ingredients: ['gin', 'vermouth', 'olive'],
+    recipe: "1. Stir gin and vermouth with ice.\n2. Strain into chilled martini glass.\n3. Garnish with olive."
+  },
+  {
+    id: 5,
+    name: 'Daiquiri',
+    ingredients: ['rum', 'lime juice', 'sugar'],
+    recipe: "1. Shake rum, lime juice, and sugar with ice.\n2. Strain into chilled coupe glass.\n3. Garnish with lime wheel."
+  },
+];
+
+const allIngredients = [...new Set(cocktails.flatMap(cocktail => cocktail.ingredients))];
+
+interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  children: React.ReactNode;
+}
+
+function Modal({ isOpen, onClose, children }: ModalProps) {
+  if (!isOpen) return null;
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:size-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center p-4">
+      <div className="bg-white text-gray-800 rounded-lg p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-end">
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">✕</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+const CocktailSuggestionApp = () => {
+  const [userIngredients, setUserIngredients] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCocktail, setSelectedCocktail] = useState<any>(null);
+
+  useEffect(() => {
+    const filteredCocktails = cocktails.filter(cocktail =>
+      cocktail.ingredients.some(ingredient => userIngredients.includes(ingredient))
+    ).map(cocktail => ({
+      ...cocktail,
+      matchedIngredients: cocktail.ingredients.filter(ingredient => userIngredients.includes(ingredient)),
+      missingIngredients: cocktail.ingredients.filter(ingredient => !userIngredients.includes(ingredient))
+    }));
+
+    filteredCocktails.sort((a, b) =>
+      b.matchedIngredients.length - a.matchedIngredients.length ||
+      a.missingIngredients.length - b.missingIngredients.length
+    );
+
+    setSuggestions(filteredCocktails);
+  }, [userIngredients]);
+
+  const addIngredient = (ingredient: string) => {
+    if (!userIngredients.includes(ingredient)) {
+      setUserIngredients([...userIngredients, ingredient]);
+    }
+    setSearchTerm('');
+  };
+
+  const removeIngredient = (ingredient: string) => {
+    setUserIngredients(userIngredients.filter(i => i !== ingredient));
+  };
+
+  const handleSearchChange = debounce((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  }, 300);
+
+  const filteredIngredients = allIngredients.filter(ingredient =>
+    ingredient.toLowerCase().includes(searchTerm.toLowerCase()) &&
+    !userIngredients.includes(ingredient)
+  );
+
+  const highlightSearchTerm = (text: string, term: string) => {
+    const parts = text.split(new RegExp(`(${term})`, 'gi'));
+    return parts.map((part, index) => 
+      part.toLowerCase() === term.toLowerCase() ? <span key={index} className="bg-yellow-200">{part}</span> : part
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-500 text-white p-8">
+      <div className="max-w-3xl mx-auto">
+        <h1 className="text-4xl font-bold mb-8 text-center">Cocktail Suggester</h1>
+        
+        <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 mb-8">
+          <h2 className="text-2xl font-semibold mb-4">Your Ingredients</h2>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {userIngredients.map(ingredient => (
+              <span key={ingredient} className="bg-white/20 rounded-full px-3 py-1 text-sm flex items-center">
+                {ingredient}
+                <button onClick={() => removeIngredient(ingredient)} className="ml-2 text-white/50 hover:text-white">
+                  ✕
+                </button>
+              </span>
+            ))}
+          </div>
+          <div className="relative">
+            <input
+              type="text"
+              onChange={handleSearchChange}
+              placeholder="Search ingredients..."
+              className="w-full bg-white/5 rounded-md py-2 pl-10 pr-4 outline-none focus:ring-2 focus:ring-white/50"
             />
-          </a>
+            <span className="absolute left-3 top-2.5 text-white/50">🔍</span>
+          </div>
+          {searchTerm && (
+            <ul className="mt-2 bg-white/5 rounded-md overflow-hidden">
+              {filteredIngredients.map(ingredient => (
+                <li
+                  key={ingredient}
+                  onClick={() => addIngredient(ingredient)}
+                  className="px-4 py-2 hover:bg-white/10 cursor-pointer"
+                >
+                  {highlightSearchTerm(ingredient, searchTerm)}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="bg-white/10 backdrop-blur-md rounded-lg p-6">
+          <h2 className="text-2xl font-semibold mb-4">Suggested Cocktails</h2>
+          {suggestions.length > 0 ? (
+            <ul className="space-y-4">
+              {suggestions.map(cocktail => (
+                <li 
+                  key={cocktail.id} 
+                  className="bg-white/5 rounded-lg p-4 cursor-pointer hover:bg-white/10 transition-colors"
+                  onClick={() => setSelectedCocktail(cocktail)}
+                >
+                  <h3 className="text-xl font-medium mb-2 flex items-center">
+                    <span className="mr-2">🍸</span>
+                    {cocktail.name}
+                  </h3>
+                  <p className="text-sm text-white/70 mb-2">
+                    Matched ingredients: {cocktail.matchedIngredients.join(', ')}
+                  </p>
+                  <p className="text-sm text-white/50">
+                    Missing ingredients: {cocktail.missingIngredients.join(', ')}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-white/70">No cocktails found with your current ingredients. Try adding more!</p>
+          )}
         </div>
       </div>
 
-      <div className="relative z-[-1] flex place-items-center before:absolute before:h-[300px] before:w-full before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 sm:before:w-[480px] sm:after:w-[240px] before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:mb-0 lg:w-full lg:max-w-5xl lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-balance text-sm opacity-50">
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+      <Modal isOpen={!!selectedCocktail} onClose={() => setSelectedCocktail(null)}>
+        {selectedCocktail && (
+          <div>
+            <h2 className="text-2xl font-bold mb-4">{selectedCocktail.name}</h2>
+            <h3 className="text-lg font-semibold mb-2">Ingredients:</h3>
+            <ul className="list-disc list-inside mb-4">
+              {selectedCocktail.ingredients.map((ingredient: string) => (
+                <li key={ingredient} className={userIngredients.includes(ingredient) ? "text-green-600" : ""}>
+                  {ingredient}
+                </li>
+              ))}
+            </ul>
+            <h3 className="text-lg font-semibold mb-2">Recipe:</h3>
+            <p className="whitespace-pre-line">{selectedCocktail.recipe}</p>
+          </div>
+        )}
+      </Modal>
+    </div>
   );
 }
+
+export default CocktailSuggestionApp;
