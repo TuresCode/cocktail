@@ -1,35 +1,35 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import debounce from 'lodash.debounce';
 
+// Dummy data for cocktails and ingredients
 const cocktails = [
-  {
-    id: 1,
-    name: 'Mojito',
+  { 
+    id: 1, 
+    name: 'Mojito', 
     ingredients: ['rum', 'mint', 'lime', 'sugar', 'soda water'],
     recipe: "1. Muddle mint leaves with sugar and lime juice.\n2. Add rum and fill glass with ice.\n3. Top with soda water and stir.\n4. Garnish with mint sprig and lime wedge."
   },
-  {
-    id: 2,
-    name: 'Margarita',
+  { 
+    id: 2, 
+    name: 'Margarita', 
     ingredients: ['tequila', 'lime juice', 'triple sec', 'salt'],
     recipe: "1. Rub rim of glass with lime and dip in salt.\n2. Shake tequila, lime juice, and triple sec with ice.\n3. Strain into glass over ice.\n4. Garnish with lime wheel."
   },
-  {
-    id: 3,
-    name: 'Old Fashioned',
+  { 
+    id: 3, 
+    name: 'Old Fashioned', 
     ingredients: ['whiskey', 'bitters', 'sugar', 'orange peel'],
     recipe: "1. Muddle sugar with bitters and a splash of water.\n2. Add whiskey and ice, stir until chilled.\n3. Express orange peel over glass and drop in."
   },
-  {
-    id: 4,
-    name: 'Martini',
+  { 
+    id: 4, 
+    name: 'Martini', 
     ingredients: ['gin', 'vermouth', 'olive'],
     recipe: "1. Stir gin and vermouth with ice.\n2. Strain into chilled martini glass.\n3. Garnish with olive."
   },
-  {
-    id: 5,
-    name: 'Daiquiri',
+  { 
+    id: 5, 
+    name: 'Daiquiri', 
     ingredients: ['rum', 'lime juice', 'sugar'],
     recipe: "1. Shake rum, lime juice, and sugar with ice.\n2. Strain into chilled coupe glass.\n3. Garnish with lime wheel."
   },
@@ -37,13 +37,7 @@ const cocktails = [
 
 const allIngredients = [...new Set(cocktails.flatMap(cocktail => cocktail.ingredients))];
 
-interface ModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  children: React.ReactNode;
-}
-
-function Modal({ isOpen, onClose, children }: ModalProps) {
+function Modal({ isOpen, onClose, children }) {
   if (!isOpen) return null;
 
   return (
@@ -58,11 +52,11 @@ function Modal({ isOpen, onClose, children }: ModalProps) {
   );
 }
 
-const CocktailSuggestionApp = () => {
-  const [userIngredients, setUserIngredients] = useState<string[]>([]);
-  const [suggestions, setSuggestions] = useState<any[]>([]);
+export default function CocktailSuggestionApp() {
+  const [userIngredients, setUserIngredients] = useState([]);
+  const [suggestions, setSuggestions] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCocktail, setSelectedCocktail] = useState<any>(null);
+  const [selectedCocktail, setSelectedCocktail] = useState(null);
 
   useEffect(() => {
     const filteredCocktails = cocktails.filter(cocktail =>
@@ -72,41 +66,27 @@ const CocktailSuggestionApp = () => {
       matchedIngredients: cocktail.ingredients.filter(ingredient => userIngredients.includes(ingredient)),
       missingIngredients: cocktail.ingredients.filter(ingredient => !userIngredients.includes(ingredient))
     }));
-
-    filteredCocktails.sort((a, b) =>
-      b.matchedIngredients.length - a.matchedIngredients.length ||
-      a.missingIngredients.length - b.missingIngredients.length
-    );
-
+    
+    filteredCocktails.sort((a, b) => b.matchedIngredients.length - a.matchedIngredients.length);
+    
     setSuggestions(filteredCocktails);
   }, [userIngredients]);
 
-  const addIngredient = (ingredient: string) => {
+  const addIngredient = (ingredient) => {
     if (!userIngredients.includes(ingredient)) {
       setUserIngredients([...userIngredients, ingredient]);
     }
     setSearchTerm('');
   };
 
-  const removeIngredient = (ingredient: string) => {
+  const removeIngredient = (ingredient) => {
     setUserIngredients(userIngredients.filter(i => i !== ingredient));
   };
-
-  const handleSearchChange = debounce((e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-  }, 300);
 
   const filteredIngredients = allIngredients.filter(ingredient =>
     ingredient.toLowerCase().includes(searchTerm.toLowerCase()) &&
     !userIngredients.includes(ingredient)
   );
-
-  const highlightSearchTerm = (text: string, term: string) => {
-    const parts = text.split(new RegExp(`(${term})`, 'gi'));
-    return parts.map((part, index) => 
-      part.toLowerCase() === term.toLowerCase() ? <span key={index} className="bg-yellow-200">{part}</span> : part
-    );
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-500 text-white p-8">
@@ -128,7 +108,8 @@ const CocktailSuggestionApp = () => {
           <div className="relative">
             <input
               type="text"
-              onChange={handleSearchChange}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search ingredients..."
               className="w-full bg-white/5 rounded-md py-2 pl-10 pr-4 outline-none focus:ring-2 focus:ring-white/50"
             />
@@ -142,7 +123,7 @@ const CocktailSuggestionApp = () => {
                   onClick={() => addIngredient(ingredient)}
                   className="px-4 py-2 hover:bg-white/10 cursor-pointer"
                 >
-                  {highlightSearchTerm(ingredient, searchTerm)}
+                  {ingredient}
                 </li>
               ))}
             </ul>
@@ -184,7 +165,7 @@ const CocktailSuggestionApp = () => {
             <h2 className="text-2xl font-bold mb-4">{selectedCocktail.name}</h2>
             <h3 className="text-lg font-semibold mb-2">Ingredients:</h3>
             <ul className="list-disc list-inside mb-4">
-              {selectedCocktail.ingredients.map((ingredient: string) => (
+              {selectedCocktail.ingredients.map(ingredient => (
                 <li key={ingredient} className={userIngredients.includes(ingredient) ? "text-green-600" : ""}>
                   {ingredient}
                 </li>
@@ -198,5 +179,3 @@ const CocktailSuggestionApp = () => {
     </div>
   );
 }
-
-export default CocktailSuggestionApp;
