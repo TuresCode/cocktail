@@ -1,41 +1,42 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 // Dummy data for cocktails and ingredients
-const cocktails = [
-  { 
-    id: 1, 
-    name: 'Mojito', 
-    ingredients: ['rum', 'mint', 'lime', 'sugar', 'soda water'],
-    recipe: "1. Muddle mint leaves with sugar and lime juice.\n2. Add rum and fill glass with ice.\n3. Top with soda water and stir.\n4. Garnish with mint sprig and lime wedge."
-  },
-  { 
-    id: 2, 
-    name: 'Margarita', 
-    ingredients: ['tequila', 'lime juice', 'triple sec', 'salt'],
-    recipe: "1. Rub rim of glass with lime and dip in salt.\n2. Shake tequila, lime juice, and triple sec with ice.\n3. Strain into glass over ice.\n4. Garnish with lime wheel."
-  },
-  { 
-    id: 3, 
-    name: 'Old Fashioned', 
-    ingredients: ['whiskey', 'bitters', 'sugar', 'orange peel'],
-    recipe: "1. Muddle sugar with bitters and a splash of water.\n2. Add whiskey and ice, stir until chilled.\n3. Express orange peel over glass and drop in."
-  },
-  { 
-    id: 4, 
-    name: 'Martini', 
-    ingredients: ['gin', 'vermouth', 'olive'],
-    recipe: "1. Stir gin and vermouth with ice.\n2. Strain into chilled martini glass.\n3. Garnish with olive."
-  },
-  { 
-    id: 5, 
-    name: 'Daiquiri', 
-    ingredients: ['rum', 'lime juice', 'sugar'],
-    recipe: "1. Shake rum, lime juice, and sugar with ice.\n2. Strain into chilled coupe glass.\n3. Garnish with lime wheel."
-  },
-];
+// const cocktails = [
+//   { 
+//     id: 1, 
+//     name: 'Mojito', 
+//     ingredients: ['rum', 'mint', 'lime', 'sugar', 'soda water'],
+//     recipe: "1. Muddle mint leaves with sugar and lime juice.\n2. Add rum and fill glass with ice.\n3. Top with soda water and stir.\n4. Garnish with mint sprig and lime wedge."
+//   },
+//   { 
+//     id: 2, 
+//     name: 'Margarita', 
+//     ingredients: ['tequila', 'lime juice', 'triple sec', 'salt'],
+//     recipe: "1. Rub rim of glass with lime and dip in salt.\n2. Shake tequila, lime juice, and triple sec with ice.\n3. Strain into glass over ice.\n4. Garnish with lime wheel."
+//   },
+//   { 
+//     id: 3, 
+//     name: 'Old Fashioned', 
+//     ingredients: ['whiskey', 'bitters', 'sugar', 'orange peel'],
+//     recipe: "1. Muddle sugar with bitters and a splash of water.\n2. Add whiskey and ice, stir until chilled.\n3. Express orange peel over glass and drop in."
+//   },
+//   { 
+//     id: 4, 
+//     name: 'Martini', 
+//     ingredients: ['gin', 'vermouth', 'olive'],
+//     recipe: "1. Stir gin and vermouth with ice.\n2. Strain into chilled martini glass.\n3. Garnish with olive."
+//   },
+//   { 
+//     id: 5, 
+//     name: 'Daiquiri', 
+//     ingredients: ['rum', 'lime juice', 'sugar'],
+//     recipe: "1. Shake rum, lime juice, and sugar with ice.\n2. Strain into chilled coupe glass.\n3. Garnish with lime wheel."
+//   },
+// ];
 
-const allIngredients = [...new Set(cocktails.flatMap(cocktail => cocktail.ingredients))];
+// const allIngredients = [...new Set(cocktails.flatMap(cocktail => cocktail.ingredients))];
 
 type ModalProps = {
   isOpen: boolean;
@@ -60,37 +61,52 @@ function Modal({ isOpen, onClose, children }: ModalProps) {
 
 export default function CocktailSuggestionApp() {
   const [userIngredients, setUserIngredients] = useState<string[]>([]);
-  const [suggestions, setSuggestions] = useState<{
-    matchedIngredients: string[];
-    missingIngredients: string[];
-    id: number;
-    name: string;
-    ingredients: string[];
-    recipe: string;
-  }[]>([]);
+  const [cocktails, setCocktails] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCocktail, setSelectedCocktail] = useState<{
-    matchedIngredients: string[];
-    missingIngredients: string[];
-    id: number;
-    name: string;
-    ingredients: string[];
-    recipe: string;
-  } | null>(null);
+  const [selectedCocktail, setSelectedCocktail] = useState(null);
+  const [allIngredients, setAllIngredients] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetch('/api/cocktails')
+      .then(response => response.json())
+      .then(data => {
+        if (Array.isArray(data.result)) {
+          setCocktails(data.result);
+          const ingredients = data.result.reduce((acc: string[], cocktail: any) => {
+            if (Array.isArray(cocktail.ingredients)) {
+              acc.push(...cocktail.ingredients);
+            }
+            return acc;
+          }, []);
+          setAllIngredients(Array.from(new Set(ingredients)));
+        } else {
+          console.error('Unexpected data format:', data);
+          setCocktails([]);
+          setAllIngredients([]);
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching cocktails:', error);
+        setCocktails([]);
+        setAllIngredients([]);
+      });
+  }, []);
 
   useEffect(() => {
     const filteredCocktails = cocktails.filter(cocktail =>
+      Array.isArray(cocktail.ingredients) && 
       cocktail.ingredients.some(ingredient => userIngredients.includes(ingredient))
     ).map(cocktail => ({
       ...cocktail,
       matchedIngredients: cocktail.ingredients.filter(ingredient => userIngredients.includes(ingredient)),
       missingIngredients: cocktail.ingredients.filter(ingredient => !userIngredients.includes(ingredient))
     }));
-    
+
     filteredCocktails.sort((a, b) => b.matchedIngredients.length - a.matchedIngredients.length);
-    
+
     setSuggestions(filteredCocktails);
-  }, [userIngredients]);
+  }, [userIngredients, cocktails]);
 
   const addIngredient = (ingredient: string) => {
     if (!userIngredients.includes(ingredient)) {
@@ -110,9 +126,13 @@ export default function CocktailSuggestionApp() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-600 to-blue-500 text-white p-8">
-      <div className="max-w-3xl mx-auto">
-        <h1 className="text-4xl font-bold mb-8 text-center">Cocktail Suggester</h1>
-        
+    <div className="max-w-3xl mx-auto">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-4xl font-bold text-center">Cocktail Suggester</h1>
+        <Link href="/database-management" className="bg-white text-purple-600 px-4 py-2 rounded-md hover:bg-purple-100 transition-colors">
+          Manage Database
+        </Link>
+      </div>
         <div className="bg-white/10 backdrop-blur-md rounded-lg p-6 mb-8">
           <h2 className="text-2xl font-semibold mb-4">Your Ingredients</h2>
           <div className="flex flex-wrap gap-2 mb-4">
