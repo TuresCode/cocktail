@@ -25,12 +25,15 @@ export async function POST(request: Request) {
   try {
     const { name, ingredients, recipe } = await request.json();
 
-    // Convert the ingredients array to a PostgreSQL array
-    const ingredientsArray = sql`ARRAY[${ingredients}]::text[]`;
+    // Ensure ingredients is an array of strings
+    if (!Array.isArray(ingredients) || !ingredients.every(item => typeof item === 'string')) {
+      throw new Error('Ingredients must be an array of strings');
+    }
 
+    const formattedIngredients = `{${ingredients.map(ingredient => `"${ingredient}"`).join(',')}}`;
     const result = await sql`
       INSERT INTO cocktails (name, ingredients, recipe)
-      VALUES (${name}, ${ingredientsArray}, ${recipe})
+      VALUES (${name}, ${formattedIngredients}, ${recipe})
       RETURNING id, name, ingredients, recipe
     `;
 

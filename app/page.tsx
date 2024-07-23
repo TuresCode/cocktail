@@ -64,7 +64,7 @@ export default function CocktailSuggestionApp() {
   const [cocktails, setCocktails] = useState<any[]>([]);
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCocktail, setSelectedCocktail] = useState(null);
+  const [selectedCocktail, setSelectedCocktail] = useState<any | null>(null);
   const [allIngredients, setAllIngredients] = useState<string[]>([]);
 
   useEffect(() => {
@@ -96,11 +96,11 @@ export default function CocktailSuggestionApp() {
   useEffect(() => {
     const filteredCocktails = cocktails.filter(cocktail =>
       Array.isArray(cocktail.ingredients) && 
-      cocktail.ingredients.some(ingredient => userIngredients.includes(ingredient))
+      cocktail.ingredients.some((ingredient: string) => userIngredients.includes(ingredient))
     ).map(cocktail => ({
       ...cocktail,
-      matchedIngredients: cocktail.ingredients.filter(ingredient => userIngredients.includes(ingredient)),
-      missingIngredients: cocktail.ingredients.filter(ingredient => !userIngredients.includes(ingredient))
+      matchedIngredients: cocktail.ingredients.filter((ingredient: string) => userIngredients.includes(ingredient)),
+      missingIngredients: cocktail.ingredients.filter((ingredient: string) => !userIngredients.includes(ingredient))
     }));
 
     filteredCocktails.sort((a, b) => b.matchedIngredients.length - a.matchedIngredients.length);
@@ -205,7 +205,7 @@ export default function CocktailSuggestionApp() {
             <h2 className="text-2xl font-bold mb-4">{selectedCocktail.name}</h2>
             <h3 className="text-lg font-semibold mb-2">Ingredients:</h3>
             <ul className="list-disc list-inside mb-4">
-              {selectedCocktail.ingredients.map(ingredient => (
+              {selectedCocktail.ingredients.map((ingredient: string) => (
                 <li key={ingredient} className={userIngredients.includes(ingredient) ? "text-green-600" : ""}>
                   {ingredient}
                 </li>
